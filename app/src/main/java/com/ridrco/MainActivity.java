@@ -4,12 +4,16 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentActivity;
 
+import android.location.LocationListener;
 import android.util.Log;
 import android.os.Bundle;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -79,6 +83,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
+        map = googleMap;
 
+        LatLng currentLoc = new LatLng(41.256538, -95.934502);
+        map.addMarker(new MarkerOptions().position(currentLoc).title("Current Location"));
+        map.moveCamera(CameraUpdateFactory.newLatLng(currentLoc));
     }
 }
