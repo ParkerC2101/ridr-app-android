@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "529377197817",
+    "firebase_url": "https://ridr-android-app.firebaseio.com",
+    "project_id": "ridr-android-app",
+    "storage_bucket": "ridr-android-app.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:529377197817:android:4ad226d2c1d9f54da0ac28",
+        "android_client_info": {
+          "package_name": "online.ridr.android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "529377197817-1mp1sr01tujpljhevs0lg41q2ffq553q.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAaRhqvX8XQgeZ0Pgjpq7lVy1eH3JxA3ss"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "529377197817-1mp1sr01tujpljhevs0lg41q2ffq553q.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
