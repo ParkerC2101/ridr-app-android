@@ -12,6 +12,9 @@ import android.location.Location;
 
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.view.animation.OvershootInterpolator;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -27,12 +30,17 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback,
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
-        LocationListener {
+        LocationListener, View.OnClickListener{
 
+    FloatingActionButton fabMain, fabOne, fabTwo, fabThree;
+    Float translationY = 100f;
+    Boolean isMenuOpen = false;
+    OvershootInterpolator interpolator = new OvershootInterpolator();
     private GoogleMap mMap;
     private GoogleApiClient googleApiClient;
     private LocationRequest locationRequest;
@@ -53,6 +61,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+        initFabMenu();
     }
 
     @Override
@@ -160,5 +169,100 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
 
+    }
+
+    private void initFabMenu(){
+        fabMain = findViewById(R.id.fabMain);
+        fabOne = findViewById(R.id.fabOne);
+        fabTwo = findViewById(R.id.fabTwo);
+        fabThree = findViewById(R.id.fabThree);
+
+        fabOne.setAlpha(0f);
+        fabTwo.setAlpha(0f);
+        fabThree.setAlpha(0f);
+
+        fabOne.setTranslationY(translationY);
+        fabTwo.setTranslationY(translationY);
+        fabThree.setTranslationY(translationY);
+
+        fabMain.setOnClickListener(this);
+        fabOne.setOnClickListener(this);
+        fabTwo.setOnClickListener(this);
+        fabThree.setOnClickListener(this);
+    }
+
+    private void openMenu(){
+        isMenuOpen = !isMenuOpen;
+
+        fabMain.animate().setInterpolator(interpolator).rotation(45f).setDuration(300).start(); //Rotates the main button open
+
+        fabOne.animate().translationY(0f).alpha(1f).setInterpolator(interpolator).setDuration(300).start(); //Moves the sub buttons up
+        fabTwo.animate().translationY(0f).alpha(1f).setInterpolator(interpolator).setDuration(300).start();
+        fabThree.animate().translationY(0f).alpha(1f).setInterpolator(interpolator).setDuration(300).start();
+
+    }
+
+    private void closeMenu(){
+        isMenuOpen = !isMenuOpen;
+
+        fabMain.animate().setInterpolator(interpolator).rotation(0f).setDuration(300).start(); //Rotates the main button closed
+
+        fabOne.animate().translationY(translationY).alpha(0f).setInterpolator(interpolator).setDuration(300).start();
+        fabTwo.animate().translationY(translationY).alpha(0f).setInterpolator(interpolator).setDuration(300).start();
+        fabThree.animate().translationY(translationY).alpha(0f).setInterpolator(interpolator).setDuration(300).start();
+
+    }
+
+    private void handleFabOne(){
+
+    }
+
+    private void handleFabTwo(){
+
+    }
+
+    private void handleFabThree(){
+
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch(v.getId()){
+            case R.id.fabMain:
+                if(isMenuOpen){
+                    closeMenu();
+                }
+                else{
+                    openMenu();
+                }
+                break;
+            case R.id.fabOne:
+                handleFabOne();
+                if(isMenuOpen){
+                    closeMenu();
+                }
+                else{
+                    openMenu();
+                }
+                break;
+            case R.id.fabTwo:
+                handleFabTwo();
+                if(isMenuOpen){
+                    closeMenu();
+                }
+                else{
+                    openMenu();
+                }
+                break;
+            case R.id.fabThree:
+                handleFabThree();
+                if(isMenuOpen){
+                    closeMenu();
+                }
+                else{
+                    openMenu();
+                }
+                break;
+        }
     }
 }
