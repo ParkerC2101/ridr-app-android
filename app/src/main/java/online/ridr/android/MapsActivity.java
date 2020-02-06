@@ -7,6 +7,8 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
+import android.app.Dialog;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 
@@ -16,8 +18,10 @@ import android.util.Log;
 import android.view.View;
 import android.view.animation.OvershootInterpolator;
 import android.widget.Toast;
+import android.location.Address;
 
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationRequest;
@@ -37,16 +41,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         GoogleApiClient.OnConnectionFailedListener,
         LocationListener, View.OnClickListener{
 
-    FloatingActionButton fabMain, fabOne, fabTwo, fabThree;
-    Float translationY = 100f;
-    Boolean isMenuOpen = false;
-    OvershootInterpolator interpolator = new OvershootInterpolator();
+    private FloatingActionButton fabMain, fabOne, fabTwo, fabThree;
+    private Float translationY = 100f;
+    private Boolean isMenuOpen = false;
+    private OvershootInterpolator interpolator = new OvershootInterpolator();
     private GoogleMap mMap;
     private GoogleApiClient googleApiClient;
     private LocationRequest locationRequest;
     private Location lastLocation;
     private Marker currentUserLocationMarker;
     private static  final int Request_User_Location_Code = 99;
+    private static final String TAG = "MapsActivity";
+    private  static final int ERROR_DIALOG_REQUEST = 9001;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,6 +68,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
         initFabMenu();
+
+    }
+
+    public boolean isServicesOk(){
+        Log.d(TAG, "isServicesOk: checking google services version");
+        int available = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(MapsActivity.this);
+
+        if(available == ConnectionResult.SUCCESS){
+            //everything is fine and the user can make map requests
+            Log.d(TAG, "isServicesOk: Google Play Services is working");
+            return true;
+        }
+        else if(GoogleApiAvailability.getInstance().isUserResolvableError(available)){
+            //an error occured but we can resolve it
+            Log.d(TAG, "isServiceOk: an error occured but we can fix it");
+            Dialog dialog = GoogleApiAvailability.getInstance().getErrorDialog(MapsActivity.this, available, ERROR_DIALOG_REQUEST);
+            dialog.show();
+        }
+        else{
+            Toast.makeText(this, "You cannot make map requests", Toast.LENGTH_SHORT).show();
+        }
+        return false;
     }
 
     @Override
@@ -256,6 +284,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 break;
             case R.id.fabThree:
                 handleFabThree();
+                openDestinationActivity();
                 if(isMenuOpen){
                     closeMenu();
                 }
@@ -264,5 +293,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
                 break;
         }
+    }
+    public void openDestinationActivity(){
+        Intent intent = new Intent(this, DestinationSearchActivity.class);
+        startActivity(intent);
     }
 }
