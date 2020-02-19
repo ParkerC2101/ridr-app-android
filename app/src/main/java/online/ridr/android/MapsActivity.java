@@ -53,6 +53,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static  final int Request_User_Location_Code = 99;
     private static final String TAG = "MapsActivity";
     private  static final int ERROR_DIALOG_REQUEST = 9001;
+    private static final float DEFAULT_ZOOM = 15f;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +62,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
             checkUserLocationPermission();
+            isServicesOk();
         }
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -101,7 +103,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             buildGoogleApiClient();
 
             mMap.setMyLocationEnabled(true);
+
         }
+
+        mMap.getUiSettings().setMyLocationButtonEnabled(false); // This removes the button that re-centers device location
 
     }
 
@@ -165,14 +170,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         markerOptions.title("Current Location");
         markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
 
-        currentUserLocationMarker = mMap.addMarker(markerOptions);
-
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-        mMap.animateCamera(CameraUpdateFactory.zoomBy(12));
+        moveCamera(new LatLng(location.getLatitude(), location.getLongitude()), DEFAULT_ZOOM);
 
         if(googleApiClient != null){
             LocationServices.FusedLocationApi.removeLocationUpdates(googleApiClient, this);
         }
+    }
+
+    public void moveCamera(LatLng latLng, Float zoom){
+        Log.d(TAG, "moveCamera: moving the camera to: lat: " + latLng.latitude + ", lng: " + latLng.longitude);
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom));
     }
 
     @Override
