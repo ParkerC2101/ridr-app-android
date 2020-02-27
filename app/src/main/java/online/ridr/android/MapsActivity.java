@@ -35,6 +35,11 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback,
         GoogleApiClient.ConnectionCallbacks,
@@ -53,7 +58,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static  final int Request_User_Location_Code = 99;
     private static final String TAG = "MapsActivity";
     private  static final int ERROR_DIALOG_REQUEST = 9001;
-    private static final float DEFAULT_ZOOM = 15f;
+    private DatabaseReference mDatabase;
+    private FirebaseDatabase mFirebaseDatabase;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,7 +69,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
             checkUserLocationPermission();
-            isServicesOk();
         }
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -70,6 +76,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
         initFabMenu();
+        Log.d("pls","plspls");
 
     }
 
@@ -96,19 +103,73 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
+        Log.d("onMapReady","onmapready is working");
         mMap = googleMap;
-
+        final Double[] latitu = {7.12312};
+        final Double[] longitu = {90.12312};
+        LatLng louvres = new LatLng(48.860294, 2.338629);
+        mMap.addMarker(new MarkerOptions().position(louvres).title("Marker sur le Louvres"));
+        mDatabase = FirebaseDatabase.getInstance().getReference();
+        DatabaseReference mData = mDatabase.child("data");
+        DatabaseReference locInfo = mData.child("stations");
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
 
             buildGoogleApiClient();
 
             mMap.setMyLocationEnabled(true);
-
         }
+        Log.d("latcheck", "this is before the database call");
+        locInfo.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot){
+                Log.d("pppp", " this is working i sweaQQQr");
+                for(DataSnapshot stations: dataSnapshot.getChildren()) {
 
-        mMap.getUiSettings().setMyLocationButtonEnabled(false); // This removes the button that re-centers device location
+                    latitu[0] = (Double)stations.child("lat").getValue();
+                    longitu[0] = (Double)stations.child("lon").getValue();
+                    Log.d("latcheck ", latitu[0].toString());
+                   LatLng p = new LatLng(latitu[0], longitu[0]);
+                    mMap.addMarker(new MarkerOptions().position(p)
+                            .title(stations.child("name").getValue().toString())
+                            /*.icon(BitmapDescriptorFactory.fromAsset("assets/bikeIcon.png"))*/);
+                    mMap.moveCamera(CameraUpdateFactory.newLatLng(p));
+                    Log.d("CREATION", " this is working i swear");
+
+
+
+                }
+            }
+            @Override
+            public void onCancelled(DatabaseError databaseError){
+                Log.w(TAG, "onCancelled", databaseError.toException());
+            }
+        });
+
 
     }
+    /*public void jsonTester(){
+        String url = "http://my-json-feed";
+
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest
+                (Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
+
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        textView.setText("Response: " + response.toString());
+                    }
+                }, new Response.ErrorListener() {
+
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        // TODO: Handle error
+
+                    }
+                });
+
+// Access the RequestQueue through your singleton class.
+        MySingleton.getInstance(this).addToRequestQueue(jsonObjectRequest);
+    }
+*/
 
     public boolean checkUserLocationPermission(){
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
@@ -170,16 +231,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         markerOptions.title("Current Location");
         markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
 
-        moveCamera(new LatLng(location.getLatitude(), location.getLongitude()), DEFAULT_ZOOM);
+        currentUserLocationMarker = mMap.addMarker(markerOptions);
+
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+        mMap.animateCamera(CameraUpdateFactory.zoomBy(12));
 
         if(googleApiClient != null){
             LocationServices.FusedLocationApi.removeLocationUpdates(googleApiClient, this);
         }
-    }
-
-    public void moveCamera(LatLng latLng, Float zoom){
-        Log.d(TAG, "moveCamera: moving the camera to: lat: " + latLng.latitude + ", lng: " + latLng.longitude);
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom));
     }
 
     @Override

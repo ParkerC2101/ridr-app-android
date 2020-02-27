@@ -1,12 +1,7 @@
 package online.ridr.android;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
-import android.Manifest;
-import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.nfc.Tag;
@@ -18,7 +13,6 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.maps.model.LatLng;
 
 import java.io.IOException;
@@ -29,12 +23,7 @@ public class DestinationSearchActivity extends AppCompatActivity {
 
     private EditText mSearchText;
     private static final String TAG = "DestinationSearch";
-    private LatLng location;
-    private static  final int Request_User_Location_Code = 99;
-    private double destLat;
-    private double destLong;
-
-
+    private LatLng destination;
 
 
     @Override
@@ -76,10 +65,7 @@ public class DestinationSearchActivity extends AppCompatActivity {
             Address address = list.get(0);
             Log.d(TAG, "geoLocate: found a location: " + address.toString());
             //Toast.makeText(this, address.toString(), Toast.LENGTH_SHORT).show();
-            //destLat = address.getLatitude();
-            //destLong = address.getLongitude();
 
         }
     }
-
 }
