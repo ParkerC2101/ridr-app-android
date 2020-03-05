@@ -15,13 +15,16 @@ import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.animation.OvershootInterpolator;
+import android.widget.AutoCompleteTextView;
 import android.widget.Toast;
 import android.location.Address;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationRequest;
@@ -30,16 +33,28 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.api.net.PlacesClient;
+import com.google.android.libraries.places.widget.Autocomplete;
+import com.google.android.libraries.places.widget.AutocompleteActivity;
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+
+import java.util.Arrays;
+import java.util.List;
+
+import online.ridr.android.adapter.PlaceAutoSuggestAdapter;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback,
         GoogleApiClient.ConnectionCallbacks,
@@ -60,6 +75,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private  static final int ERROR_DIALOG_REQUEST = 9001;
     private DatabaseReference mDatabase;
     private FirebaseDatabase mFirebaseDatabase;
+    int AUTOCOMPLETE_REQUEST_CODE = 1;
+
 
 
     @Override
@@ -76,7 +93,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
         initFabMenu();
-        Log.d("pls","plspls");
 
     }
 
@@ -103,12 +119,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        Log.d("onMapReady","onmapready is working");
+        Log.d("onMapReady","onMapReady is working");
         mMap = googleMap;
         final Double[] latitu = {7.12312};
         final Double[] longitu = {90.12312};
-        LatLng louvres = new LatLng(48.860294, 2.338629);
-        mMap.addMarker(new MarkerOptions().position(louvres).title("Marker sur le Louvres"));
         mDatabase = FirebaseDatabase.getInstance().getReference();
         DatabaseReference mData = mDatabase.child("data");
         DatabaseReference locInfo = mData.child("stations");
@@ -138,7 +152,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
                 }
+
+
             }
+
+
             @Override
             public void onCancelled(DatabaseError databaseError){
                 Log.w(TAG, "onCancelled", databaseError.toException());
@@ -225,13 +243,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             currentUserLocationMarker.remove();
         }
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+        //LatLng finalLatLng =
 
         MarkerOptions markerOptions = new MarkerOptions();
         markerOptions.position(latLng);
         markerOptions.title("Current Location");
         markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
 
-        currentUserLocationMarker = mMap.addMarker(markerOptions);
+        //markerOptions.position(finalLatLng);
+        //markerOptions.title("Intended Destination");
+        //markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
+
+        //currentUserLocationMarker = mMap.addMarker(markerOptions);
 
         mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
         mMap.animateCamera(CameraUpdateFactory.zoomBy(12));
@@ -283,6 +306,49 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         fabOne.setOnClickListener(this);
         fabTwo.setOnClickListener(this);
         fabThree.setOnClickListener(this);
+
+        String apiKey = getString(R.string.api_key);
+
+        if(!Places.isInitialized()){
+            Places.initialize(getApplicationContext(), apiKey);
+        }
+        PlacesClient placesClient = Places.createClient(this);
+    }
+
+    public boolean onOptionsItemSelected(MenuItem item){
+        switch (item.getItemId()){
+            case R.id.input_search:
+                onSearchRequested();
+                return true;
+            case android.R.id.home:
+                finish();
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private void onSearchCalled(){
+        List<Place.Field> fields = Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.ADDRESS, Place.Field.LAT_LNG);
+        Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.OVERLAY, fields).build(this);
+        startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == AUTOCOMPLETE_REQUEST_CODE) {
+            if (resultCode == RESULT_OK) {
+                Place place = Autocomplete.getPlaceFromIntent(data);
+                Log.i(TAG, "Place: " + place.getName() + ", " + place.getId() + ", " + place.getAddress());
+                String address = place.getAddress();
+            } else if (resultCode == AutocompleteActivity.RESULT_ERROR) {
+                Status status = Autocomplete.getStatusFromIntent(data);
+                Log.i(TAG, status.getStatusMessage());
+            } else if (resultCode == RESULT_CANCELED) {
+
+            }
+        }
     }
 
     private void openMenu(){
@@ -350,7 +416,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 break;
             case R.id.fabThree:
                 handleFabThree();
-                openDestinationActivity();
+                //openDestinationActivity();
+                onSearchCalled();
+                //PlaceAutoSuggestAdapter.findAutocompletePredictions();
+                //Intent intent = new Autocomplete.IntentBuilder(
+                 //       AutocompleteActivityMode.FULLSCREEN, fields)
+                 //       .build(this);
+                //startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE);
                 if(isMenuOpen){
                     closeMenu();
                 }
@@ -364,4 +436,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Intent intent = new Intent(this, DestinationSearchActivity.class);
         startActivity(intent);
     }
+
+
 }
