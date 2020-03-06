@@ -10,6 +10,7 @@ import android.Manifest;
 import android.app.Dialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
 import android.location.Location;
 
 import android.os.Build;
@@ -70,6 +71,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private LocationRequest locationRequest;
     private Location lastLocation;
     private Marker currentUserLocationMarker;
+    private Marker intendedPointMarker;
     private static  final int Request_User_Location_Code = 99;
     private static final String TAG = "MapsActivity";
     private  static final int ERROR_DIALOG_REQUEST = 9001;
@@ -143,9 +145,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     longitu[0] = (Double)stations.child("lon").getValue();
                     Log.d("latcheck ", latitu[0].toString());
                    LatLng p = new LatLng(latitu[0], longitu[0]);
-                    mMap.addMarker(new MarkerOptions().position(p)
-                            .title(stations.child("name").getValue().toString())
-                            /*.icon(BitmapDescriptorFactory.fromAsset("assets/bikeIcon.png"))*/);
+                    mMap.addMarker(new MarkerOptions().position(p).title(stations.child("name").getValue().toString()).icon(BitmapDescriptorFactory.fromResource(R.drawable.bike_marker)));
                     mMap.moveCamera(CameraUpdateFactory.newLatLng(p));
                     Log.d("CREATION", " this is working i swear");
 
@@ -243,16 +243,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             currentUserLocationMarker.remove();
         }
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        //LatLng finalLatLng =
+
 
         MarkerOptions markerOptions = new MarkerOptions();
         markerOptions.position(latLng);
         markerOptions.title("Current Location");
         markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
 
-        //markerOptions.position(finalLatLng);
-        //markerOptions.title("Intended Destination");
-        //markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
+
 
         //currentUserLocationMarker = mMap.addMarker(markerOptions);
 
@@ -337,10 +335,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+
         if (requestCode == AUTOCOMPLETE_REQUEST_CODE) {
             if (resultCode == RESULT_OK) {
                 Place place = Autocomplete.getPlaceFromIntent(data);
                 Log.i(TAG, "Place: " + place.getName() + ", " + place.getId() + ", " + place.getAddress());
+                //Toast.makeText(MapsActivity.this, "ID: " + place.getId() + "address: " + place.getAddress() + "Name:" + place.getName() + " latlong: " + place.getLatLng(), Toast.LENGTH_LONG).show();
+                MarkerOptions markerOptions = new MarkerOptions();
+                markerOptions.position(place.getLatLng());
+                markerOptions.title("Intended Destination");
+                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
+                intendedPointMarker = mMap.addMarker(markerOptions);
+
                 String address = place.getAddress();
             } else if (resultCode == AutocompleteActivity.RESULT_ERROR) {
                 Status status = Autocomplete.getStatusFromIntent(data);
