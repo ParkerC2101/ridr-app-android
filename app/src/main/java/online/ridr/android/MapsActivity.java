@@ -128,6 +128,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mDatabase = FirebaseDatabase.getInstance().getReference();
         DatabaseReference mData = mDatabase.child("data");
         DatabaseReference locInfo = mData.child("stations");
+        DatabaseReference buses = mDatabase.child("locations").child("ometro").child("stops");
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
 
             buildGoogleApiClient();
@@ -149,7 +150,32 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     mMap.moveCamera(CameraUpdateFactory.newLatLng(p));
                     Log.d("CREATION", " this is working i swear");
 
+                }
 
+
+            }
+
+
+            @Override
+            public void onCancelled(DatabaseError databaseError){
+                Log.w(TAG, "onCancelled", databaseError.toException());
+            }
+        });
+        buses.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot){
+                Log.d("pppp", " this is working i sweaQQQr");
+                for(DataSnapshot stations: dataSnapshot.getChildren()) {
+                    //Log.d("Iamjesus", stations.child("stop_lat").getValue(String.class));
+                    //Log.d("Iamjesus", stations.child("stop_lon").getValue(String.class));
+
+                    latitu[0] = Double.parseDouble(stations.child("stop_lat").getValue(String.class));
+                    longitu[0] = Double.parseDouble(stations.child("stop_lon").getValue(String.class));
+                    //Log.d("latcheck ", latitu[0].toString());
+                    LatLng p = new LatLng(latitu[0], longitu[0]);
+                    mMap.addMarker(new MarkerOptions().position(p).title(stations.child("stop_name").getValue().toString()).icon(BitmapDescriptorFactory.fromResource(R.drawable.bus_marker)));
+                    mMap.moveCamera(CameraUpdateFactory.newLatLng(p));
+                    Log.d("CREATION", " this is working i swear");
 
                 }
 
