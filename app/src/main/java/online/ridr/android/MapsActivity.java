@@ -10,9 +10,11 @@ import android.Manifest;
 import android.app.Dialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -39,6 +41,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.api.net.PlacesClient;
@@ -52,7 +55,20 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.reflect.Array;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 import online.ridr.android.adapter.PlaceAutoSuggestAdapter;
@@ -72,12 +88,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Location lastLocation;
     private Marker currentUserLocationMarker;
     private Marker intendedPointMarker;
+    private Marker workLocationMarker;
+    private Marker homeLocationMarker;
     private static  final int Request_User_Location_Code = 99;
     private static final String TAG = "MapsActivity";
     private  static final int ERROR_DIALOG_REQUEST = 9001;
     private DatabaseReference mDatabase;
     private FirebaseDatabase mFirebaseDatabase;
     int AUTOCOMPLETE_REQUEST_CODE = 1;
+    ArrayList<LatLng> listPoints;
 
 
 
@@ -94,6 +113,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+        listPoints = new ArrayList<>();
         initFabMenu();
 
     }
@@ -139,7 +159,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         locInfo.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot){
-                Log.d("pppp", " this is working i sweaQQQr");
+                Log.d("dataChange", "Data is currently being checked and updated");
                 for(DataSnapshot stations: dataSnapshot.getChildren()) {
 
                     latitu[0] = (Double)stations.child("lat").getValue();
@@ -164,10 +184,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         buses.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot){
-                Log.d("pppp", " this is working i sweaQQQr");
                 for(DataSnapshot stations: dataSnapshot.getChildren()) {
-                    //Log.d("Iamjesus", stations.child("stop_lat").getValue(String.class));
-                    //Log.d("Iamjesus", stations.child("stop_lon").getValue(String.class));
 
                     latitu[0] = Double.parseDouble(stations.child("stop_lat").getValue(String.class));
                     longitu[0] = Double.parseDouble(stations.child("stop_lon").getValue(String.class));
@@ -175,7 +192,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     LatLng p = new LatLng(latitu[0], longitu[0]);
                     mMap.addMarker(new MarkerOptions().position(p).title(stations.child("stop_name").getValue().toString()).icon(BitmapDescriptorFactory.fromResource(R.drawable.bus_marker)));
                     mMap.moveCamera(CameraUpdateFactory.newLatLng(p));
-                    Log.d("CREATION", " this is working i swear");
+                    Log.d("CREATION", "The creation is running");
 
                 }
 
@@ -191,29 +208,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     }
-    /*public void jsonTester(){
-        String url = "http://my-json-feed";
-
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest
-                (Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
-
-                    @Override
-                    public void onResponse(JSONObject response) {
-                        textView.setText("Response: " + response.toString());
-                    }
-                }, new Response.ErrorListener() {
-
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        // TODO: Handle error
-
-                    }
-                });
-
-// Access the RequestQueue through your singleton class.
-        MySingleton.getInstance(this).addToRequestQueue(jsonObjectRequest);
-    }
-*/
 
     public boolean checkUserLocationPermission(){
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
@@ -269,17 +263,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             currentUserLocationMarker.remove();
         }
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-
-
+        listPoints.add(latLng);
         MarkerOptions markerOptions = new MarkerOptions();
         markerOptions.position(latLng);
         markerOptions.title("Current Location");
         markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
-
-
-
         //currentUserLocationMarker = mMap.addMarker(markerOptions);
-
         mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
         mMap.animateCamera(CameraUpdateFactory.zoomBy(12));
 
@@ -358,7 +347,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE);
     }
 
-    @Override
+    /*@Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
@@ -366,14 +355,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (resultCode == RESULT_OK) {
                 Place place = Autocomplete.getPlaceFromIntent(data);
                 Log.i(TAG, "Place: " + place.getName() + ", " + place.getId() + ", " + place.getAddress());
+                listPoints.add(place.getLatLng());
+                Log.i(TAG, listPoints.toString());
                 //Toast.makeText(MapsActivity.this, "ID: " + place.getId() + "address: " + place.getAddress() + "Name:" + place.getName() + " latlong: " + place.getLatLng(), Toast.LENGTH_LONG).show();
                 MarkerOptions markerOptions = new MarkerOptions();
                 markerOptions.position(place.getLatLng());
-                markerOptions.title("Intended Destination");
-                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
+                markerOptions.title(place.getName());
+                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
                 intendedPointMarker = mMap.addMarker(markerOptions);
-
+                //Broken after this point
+                Place placeHolderVar = place;
                 String address = place.getAddress();
+                if(listPoints.size() == 2){
+                    String url = getRequestUrl(listPoints.get(0), listPoints.get(1));
+                    TaskRequestDirections taskRequestDirections = new TaskRequestDirections();
+                    taskRequestDirections.execute(url);
+                }
+
             } else if (resultCode == AutocompleteActivity.RESULT_ERROR) {
                 Status status = Autocomplete.getStatusFromIntent(data);
                 Log.i(TAG, status.getStatusMessage());
@@ -382,6 +380,64 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
     }
+
+     */
+
+
+
+    private String getRequestUrl(LatLng origin, LatLng dest) {
+        //Value of the origin
+        String str_org = "Origin =" + origin.latitude + "," + origin.longitude;
+        //Value of the intended destination
+        String str_dest = "Destination =" + dest.latitude + "," + dest.longitude;
+        //Set value enabled of sensor
+        String sensor = "sensor=false";
+        //Mode for finding directions
+        String mode = "mode=driving";
+        //Build the full parameter
+        String param = str_org + "&" + str_dest + "&" + sensor + "&" + mode;
+        //Output format
+        String output = "json";
+        //Create url to request
+        String url = "https://maps.googleapis.com/maps/api/directions/" + output + "?" + param;
+        return url;
+    }
+
+    private String requestDirection(String reqUrl) throws IOException {
+        String responseString = "";
+        InputStream inputStream = null;
+        HttpURLConnection httpURLConnection = null;
+        try{
+            URL url = new URL(reqUrl);
+            httpURLConnection = (HttpURLConnection) url.openConnection();
+            httpURLConnection.connect();
+
+            //Get the response result
+            inputStream = httpURLConnection.getInputStream();
+            InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+
+            StringBuffer stringBuffer = new StringBuffer();
+            String line = "";
+            while ((line = bufferedReader.readLine()) != null){
+                stringBuffer.append(line);
+            }
+
+            responseString = stringBuffer.toString();
+            bufferedReader.close();
+            inputStreamReader.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }   finally {
+            if(inputStream != null){
+                inputStream.close();
+            }
+            httpURLConnection.disconnect();
+        }
+        return responseString;
+    }
+
 
     private void openMenu(){
         isMenuOpen = !isMenuOpen;
@@ -406,15 +462,34 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void handleFabOne(){
-
+        LatLng homeLatLng = new LatLng(41.195900, -96.187360);
+        listPoints.add(homeLatLng);
+        MarkerOptions homeMarkerOptions = new MarkerOptions();
+        homeMarkerOptions.position(homeLatLng);
+        homeMarkerOptions.title("Home");
+        homeMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET));
+        homeLocationMarker = mMap.addMarker(homeMarkerOptions);
     }
 
     private void handleFabTwo(){
-
+        LatLng workLatLng = new LatLng(41.260900, -96.180120);
+        listPoints.add(workLatLng);
+        MarkerOptions workMarkerOptions = new MarkerOptions();
+        workMarkerOptions.position(workLatLng);
+        workMarkerOptions.title("Work");
+        workMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW));
+        workLocationMarker = mMap.addMarker(workMarkerOptions);
     }
 
     private void handleFabThree(){
-
+        LatLng searchLatLng = new LatLng(41.246239, -96.016418);
+        listPoints.add(searchLatLng);
+        MarkerOptions homeMarkerOptions = new MarkerOptions();
+        homeMarkerOptions.position(searchLatLng);
+        homeMarkerOptions.title("Peter Kiewit Institute");
+        homeMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
+        homeLocationMarker = mMap.addMarker(homeMarkerOptions);
+        System.out.println(listPoints);
     }
 
     @Override
@@ -430,6 +505,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 break;
             case R.id.fabOne:
                 handleFabOne();
+
                 if(isMenuOpen){
                     closeMenu();
                 }
@@ -447,9 +523,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
                 break;
             case R.id.fabThree:
-                handleFabThree();
-                //openDestinationActivity();
                 onSearchCalled();
+                handleFabThree();
                 //PlaceAutoSuggestAdapter.findAutocompletePredictions();
                 //Intent intent = new Autocomplete.IntentBuilder(
                  //       AutocompleteActivityMode.FULLSCREEN, fields)
@@ -467,6 +542,75 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void openDestinationActivity(){
         Intent intent = new Intent(this, DestinationSearchActivity.class);
         startActivity(intent);
+    }
+
+    public class TaskRequestDirections extends AsyncTask<String, Void, String>{
+
+        @Override
+        protected String doInBackground(String... strings) {
+            String responseString = "";
+            try {
+                responseString = requestDirection(strings[0]);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return responseString;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+            //Parse json here
+            TaskParser taskParser = new TaskParser();
+            taskParser.execute(s);
+        }
+    }
+
+    public class TaskParser extends AsyncTask<String, Void, List<List<HashMap<String, String>>>>{
+
+        @Override
+        protected List<List<HashMap<String, String>>> doInBackground(String... strings) {
+            JSONObject jsonObject = null;
+            List<List<HashMap<String, String>>> routes = null;
+            try {
+                jsonObject = new JSONObject(strings[0]);
+                DirectionsParser directionsParser = new DirectionsParser();
+                routes = directionsParser.parse(jsonObject);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            return routes;
+        }
+
+        @Override
+        protected void onPostExecute(List<List<HashMap<String, String>>> lists) {
+            //Get list route and display it onto the map
+            ArrayList points = null;
+            PolylineOptions polylineOptions = null;
+            for(List<HashMap<String, String>> path : lists){
+                points = new ArrayList();
+                polylineOptions = new PolylineOptions();
+                for(HashMap<String, String> point : path){
+                    double lat = Double.parseDouble(point.get("lat"));
+                    double lon = Double.parseDouble(point.get("lon"));
+
+                    points.add(new LatLng(lat,lon));
+                }
+
+                polylineOptions.addAll(points);
+                polylineOptions.width(15);
+                polylineOptions.color(Color.BLUE);
+                polylineOptions.geodesic(true);
+            }
+
+            if(polylineOptions != null){
+                mMap.addPolyline(polylineOptions);
+            }
+            else{
+                Toast.makeText(getApplicationContext(), "Directions not found!", Toast.LENGTH_SHORT).show();
+            }
+
+        }
     }
 
 
