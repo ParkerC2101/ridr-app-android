@@ -347,7 +347,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE);
     }
 
-    /*@Override
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
@@ -381,7 +381,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-     */
+
 
 
 
@@ -482,14 +482,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void handleFabThree(){
-        LatLng searchLatLng = new LatLng(41.246239, -96.016418);
-        listPoints.add(searchLatLng);
-        MarkerOptions homeMarkerOptions = new MarkerOptions();
-        homeMarkerOptions.position(searchLatLng);
-        homeMarkerOptions.title("Peter Kiewit Institute");
-        homeMarkerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
-        homeLocationMarker = mMap.addMarker(homeMarkerOptions);
-        System.out.println(listPoints);
+
     }
 
     @Override
